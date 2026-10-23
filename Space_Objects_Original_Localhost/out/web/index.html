@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Space Objects</title>
+<style>body{margin:0;background:#000}canvas{display:block}p{color:white;font:14px Arial;margin:8px}</style></head>
+<body><canvas id="tela" width="640" height="480" aria-label="Jogo Space Objects"></canvas><p>← → mover | Espaço atirar</p><p id="erro" role="status"></p>
+<script>
+const ctx=document.querySelector('#tela').getContext('2d');
+const teclas=new Set(),imagens={};let tiros=0;
+function imagem(caminho){if(!imagens[caminho]){const img=new Image();img.src='/'+caminho;imagens[caminho]=img;}return imagens[caminho];}
+function desenhar(s){
+ ctx.clearRect(0,0,640,480);
+ for(const a of [s.nave,...s.assets]){const img=imagem(a.imagem);if(img.complete&&img.naturalWidth)ctx.drawImage(img,a.x,a.y,50,50);}
+ for(const [caminho,y] of [['images/badge/star_gold.png',13],['images/badge/shield_bronze.png',59]]){const img=imagem(caminho);if(img.complete&&img.naturalWidth)ctx.drawImage(img,14,y,27,27);}
+ ctx.fillStyle='#12ff35';ctx.font='bold 29px Consolas, monospace';ctx.fillText(s.pontos,52,35);ctx.fillText(s.nivel,52,81);
+}
+window.addEventListener('keydown',e=>{if(['ArrowLeft','ArrowRight','Space'].includes(e.code)){e.preventDefault();if(e.code==='Space')tiros++;else teclas.add(e.code);}});
+window.addEventListener('keyup',e=>teclas.delete(e.code));window.addEventListener('blur',()=>{teclas.clear();tiros=0;});
+async function atualizar(){
+ let comando=[];
+ if(teclas.has('ArrowLeft'))comando.push('esquerda');
+ if(teclas.has('ArrowRight'))comando.push('direita');
+ if(tiros>0){comando.push('tiro');tiros--;}
+ try{const r=await fetch('/api/jogo',{method:'POST',body:comando.join(',')});if(!r.ok)throw Error();desenhar(await r.json());document.querySelector('#erro').textContent='';}
+ catch(e){document.querySelector('#erro').textContent='Não foi possível conectar ao servidor Java.';}
+ setTimeout(atualizar,40);
+}
+atualizar();
+</script></body></html>
